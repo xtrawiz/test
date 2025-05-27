@@ -1,0 +1,6 @@
+SQLAlchemy>=2.0.0
+alembic>=1.9.0
+aiomysql>=0.2.0
+pydantic-settings>=2.0.0
+Jinja2>=3.0.0
+Babel>=2.9.0

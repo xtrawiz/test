@@ -1,0 +1,4 @@
+-r ../core/requirements.txt
+pyrogram>=2.0.106
+pydantic-settings>=2.0.0
+TgCrypto
