@@ -1,0 +1,4 @@
+-r ../core/requirements.txt
+celery[redis]>=5.2.0
+# redis>=4.3.0 # No longer needed separately, celery[redis] includes it.
+pydantic-settings>=2.0.0

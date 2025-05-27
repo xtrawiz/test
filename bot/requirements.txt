@@ -1,0 +1,13 @@
+pyrogram
+tgcrypto
+sqlalchemy
+mysqlclient
+python-dotenv
+feedparser
+celery
+redis
+ccxt
+matplotlib
+pandas
+TA-Lib
+apscheduler

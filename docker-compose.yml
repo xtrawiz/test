@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile # Assuming you will create a Dockerfile for bot
+    command: python bot/main.py
+    depends_on:
+      - redis
+      - db
+    environment:
+      - TELEGRAM_API_ID=${TELEGRAM_API_ID}
+      - TELEGRAM_API_HASH=${TELEGRAM_API_HASH}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - RSS_FEEDS=${RSS_FEEDS}
+    restart: unless-stopped
+    env_file:
+      - .env
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile # Assuming you will create a Dockerfile for web
+    command: uvicorn web.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    restart: unless-stopped
+    env_file:
+      - .env
+
+  db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    restart: unless-stopped
+    env_file:
+      - .env
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  celery_worker:
+    build:
+      context: ./bot # Use the same build context as the bot
+      dockerfile: Dockerfile # Assuming bot's Dockerfile includes Celery
+    command: celery -A bot.tasks worker -l info
+    depends_on:
+      - redis
+      - db
+    environment:
+      - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - RSS_FEEDS=${RSS_FEEDS} # Worker also needs RSS_FEEDS if tasks are defined there
+    restart: unless-stopped
+    env_file:
+      - .env
+
+  celery_beat:
+    build:
+      context: ./bot # Use the same build context as the bot
+      dockerfile: Dockerfile # Assuming bot's Dockerfile includes Celery
+    command: celery -A bot.tasks beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    depends_on:
+      - redis
+      - db
+    environment:
+      - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - RSS_FEEDS=${RSS_FEEDS} # Beat also needs RSS_FEEDS if tasks are defined there
+    restart: unless-stopped
+    env_file:
+      - .env
+
+volumes:
+  mysql_data:
